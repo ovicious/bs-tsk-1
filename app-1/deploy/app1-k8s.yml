@@ -1,0 +1,225 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: db
+      name: db
+    spec:
+      ports:
+        - name: "3306"
+          port: 3306
+          targetPort: 3306
+      selector:
+        name: db
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: web
+      name: web
+    spec:
+      ports:
+        - name: "80"
+          port: 80
+          targetPort: 80
+      selector:
+        name: web
+    status:
+      loadBalancer: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        name: app
+      name: app
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          name: app
+      strategy:
+        type: Recreate
+      template:
+        metadata: 
+          labels:
+            name: app
+        spec:
+          containers:
+            - env:
+                - name: APP_DEBUG
+                  value: "true"
+                - name: APP_ENV
+                  value: local
+                - name: APP_KEY
+                  value: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                - name: APP_URL
+                  value: http://localhost
+                - name: DB_CONNECTION
+                  value: mysql
+                - name: DB_DATABASE
+                  value: laravel
+                - name: DB_HOST
+                  value: db
+                - name: DB_PASSWORD
+                  value: secret
+                - name: DB_PORT
+                  value: "3306"
+                - name: DB_USERNAME
+                  value: phper
+                - name: LOG_CHANNEL
+                  value: stderr
+                - name: LOG_STDERR_FORMATTER
+                  value: Monolog\Formatter\JsonFormatter
+              image: ovicious/laravel-app:latest
+              name: app
+              resources: {}
+              volumeMounts:
+                - mountPath: /data
+                  name: app-claim0
+                - mountPath: /root/.config/psysh
+                  name: psysh-store
+          restartPolicy: Always
+          volumes:
+            - name: app-claim0
+              persistentVolumeClaim:
+                claimName: app-claim0
+            - name: psysh-store
+              persistentVolumeClaim:
+                claimName: psysh-store
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+
+      labels:
+        name: app-claim0
+      name: app-claim0
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+
+      labels:
+        name: psysh-store
+      name: psysh-store
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        name: db
+      name: db
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          name: db
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            name: db
+        spec:
+          containers:
+            - env:
+                - name: MYSQL_DATABASE
+                  value: laravel
+                - name: MYSQL_PASSWORD
+                  value: secret
+                - name: MYSQL_ROOT_PASSWORD
+                  value: secret
+                - name: MYSQL_USER
+                  value: phper
+              image: ovicious/laravel-db:latest
+              name: db
+              ports:
+                - containerPort: 3306
+              resources: {}
+              volumeMounts:
+                - mountPath: /var/lib/mysql
+                  name: db-store
+          restartPolicy: Always
+          volumes:
+            - name: db-store
+              persistentVolumeClaim:
+                claimName: db-store
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        name: db-store
+      name: db-store
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        name: web
+      name: web
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          name: web
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            name: web
+        spec:
+          containers:
+            - image: ovicious/laravel-web:latest
+              name: web
+              ports:
+                - containerPort: 80
+              resources: {}
+              volumeMounts:
+                - mountPath: /data
+                  name: web-claim0
+          restartPolicy: Always
+          volumes:
+            - name: web-claim0
+              persistentVolumeClaim:
+                claimName: web-claim0
+    status: {}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        name: web-claim0
+      name: web-claim0
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+    status: {}
+kind: List
+metadata: {}
+
